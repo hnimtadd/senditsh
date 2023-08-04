@@ -1,0 +1,6 @@
+test:
+	go test -coverprofile cover.out ./...
+test_verbose:
+	go test  -v -coverprofile cover.out ./...
+run:
+	go run main.go
