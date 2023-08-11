@@ -2,22 +2,23 @@ package repository
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/hnimtadd/senditsh/data"
-	"github.com/hnimtadd/senditsh/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func (repo *repositoryImpl) CreateUser(user User) error {
+func (repo *repositoryImpl) CreateUser(user *data.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
+	user.Id = primitive.NewObjectID()
 	_, err := repo.db.Collection("users").InsertOne(ctx, user)
 	if err != nil {
 		return err
 	}
-	repo.logger.DefaultLog(logger.Info, "Inserted User into repository")
+	// repo.logger.DefaultLog(logger.Info, "Inserted User into repository")
 	return nil
 }
 func (repo *repositoryImpl) GetUsers() ([]data.User, error) {
@@ -39,23 +40,129 @@ func (repo *repositoryImpl) GetUsers() ([]data.User, error) {
 	if err := cur.Err(); err != nil {
 		return nil, err
 	}
-	repo.logger.DefaultLog(logger.Info, "Getted users from repository")
+	// repo.logger.DefaultLog(logger.Info, "Getted users from repository")
 	return users, nil
 }
 
-func (repo *repositoryImpl) GetUserById(id string) (*data.User, error) {
+func (repo *repositoryImpl) GetUserByUserName(userName string) (*data.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
+	filter := bson.M{"userName": userName}
+	res := repo.db.Collection("users").FindOne(ctx, filter)
+	if err := res.Err(); err != nil {
+		log.Println("msg", "error while retriving user", "err", err)
+		return nil, err
+	}
+	var user data.User
+	if err := res.Decode(&user); err != nil {
+		log.Println("msg", "error while decoding user", "err", err)
+		return nil, err
+	}
+	return &user, nil
 
-	filter := bson.D{primitive.E{Key: "id", Value: id}}
+}
+
+func (repo *repositoryImpl) GetUserByPublicKey(publicKey string) (*data.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	filter := bson.M{"settings.sshKey": publicKey}
 	res := repo.db.Collection("users").FindOne(ctx, filter)
 	if err := res.Err(); err != nil {
 		return nil, err
 	}
-	var user *data.User
-	if err := res.Decode(user); err != nil {
+	var user data.User
+	if err := res.Decode(&user); err != nil {
 		return nil, err
 	}
-	return user, nil
+	return &user, nil
+}
 
+func (repo *repositoryImpl) GetSettingOfUser(userName string) (*data.Settings, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	pipeline := []bson.M{{
+		"$match": bson.M{
+			"userName": userName,
+		},
+	},
+		{
+			"$replaceRoot": bson.M{
+				"newRoot": "$settings",
+			},
+		},
+	}
+	cur, err := repo.db.Collection("users").Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var settings []data.Settings
+	if err := cur.All(ctx, &settings); err != nil {
+		return nil, err
+	}
+	if len(settings) != 1 {
+		log.Println("Debug")
+	}
+
+	setting := settings[0]
+	return &setting, nil
+}
+
+func (repo *repositoryImpl) UpdateUserSetting(userName string, setting *data.Settings) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	filter := bson.M{
+		"userName": userName,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"settings": setting,
+		},
+	}
+	res := repo.db.Collection("users").FindOneAndUpdate(ctx, filter, update)
+	if err := res.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *repositoryImpl) InsertUserSSHKey(userName string, sshKey string, sshHash string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	filter := bson.M{
+		"userName": userName,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"settings.sshKey":     sshKey,
+			"settings.sshHash":    sshHash,
+			"settings.modifiedAt": time.Now().Unix(),
+		},
+	}
+	res := repo.db.Collection("users").FindOneAndUpdate(ctx, filter, update)
+	if err := res.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *repositoryImpl) InsertUserDomain(userName string, domain string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	filter := bson.M{
+		"userName": userName,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"settings.subdomain":  domain,
+			"settings.modifiedAt": time.Now().Unix(),
+		},
+	}
+	res := repo.db.Collection("users").FindOneAndUpdate(ctx, filter, update)
+	if err := res.Err(); err != nil {
+		return err
+	}
+	return nil
 }
