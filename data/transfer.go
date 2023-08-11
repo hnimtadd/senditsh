@@ -7,9 +7,9 @@ import (
 )
 
 type Transfer struct {
-	Link        string
+	Link        string `json:"link,omiempty" bson:"link,omiempty"`
 	Filename    string `json:"fileName,omiempty" bson:"fileName,omiempty"`
-	From        string `json:"from,omiempty" bson:"from,omiempty"`
+	UserName    string `json:"userName,omiempty" bson:"userName,omiempty"`
 	ToEmail     string `json:"toEmail,omiempty" bson:"toEmail,omiempty"`
 	Message     string `json:"message,omiempty" bson:"message,omiempty"`
 	IsVerified  bool   `json:"isVerified,omiempty" bson:"isVerified,omiempty"`
@@ -22,7 +22,7 @@ func (t Transfer) String() string {
 	builder := strings.Builder{}
 	builder.WriteString("\n--------Transfer--------\n")
 	builder.WriteString(fmt.Sprintf("Filename: %v\n", t.Filename))
-	builder.WriteString(fmt.Sprintf("From: %v\n", t.From))
+	builder.WriteString(fmt.Sprintf("From: %v\n", t.UserName))
 	builder.WriteString(fmt.Sprintf("ToEmail: %v\n", t.ToEmail))
 	builder.WriteString(fmt.Sprintf("Link: %v\n", t.Link))
 	builder.WriteString(fmt.Sprintf("Message: %v\n", t.Message))
