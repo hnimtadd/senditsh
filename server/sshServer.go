@@ -154,7 +154,7 @@ func (sever *SSHServerImpl) initSSHSession(s ssh.Session) (*api.SSHSession, erro
 	if err != nil {
 		return nil, err
 	}
-	user := utils.GetContextVariableWithType[*data.User](s.Context(), "user", nil)
+	user := utils.GetContextVariableWithType[*api.User](s.Context(), "user", nil)
 	if user == nil {
 		logger.Info("msg", fmt.Sprintf("New connection from anonymous user: %v, remote ip: %v, command: %v", s.User(), s.RemoteAddr(), s.Command()))
 	} else {
