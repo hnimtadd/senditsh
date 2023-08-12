@@ -1,0 +1,9 @@
+{% extends "layouts/user.html" %}
+
+{% block headContent %}
+<title>Setting - Sendit</title>
+
+{% endblock %}
+{% block pageContent %}
+<div>Setting page</div>
+{% if userSetting %} {{userSetting}} {% endif %} {% endblock %}

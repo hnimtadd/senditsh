@@ -1,0 +1,9 @@
+{% extends "layouts/base.html" %}
+{% block content %}
+<div class=" w-full h-screen ">
+  <div class="flex flex-row justify-start w-full bg-gray-50">
+    <div>{% include "components/sidebar.html" %}</div>
+    <div class="w-full">{% block pageContent %} {% endblock %}</div>
+  </div>
+</div>
+{% endblock %}
