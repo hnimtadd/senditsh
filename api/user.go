@@ -8,14 +8,15 @@ import (
 	"github.com/hnimtadd/senditsh/utils"
 )
 
-func (h *ApiHandlerImpl) CreateUser(user *data.User) error {
+func (h *ApiHandlerImpl) CreateUser(user *User) error {
 	usr, _ := h.repo.GetUserByUserName(user.Username)
 	if usr != nil {
 		return fmt.Errorf("Error while creating user with username %v. Err: Username existed", user.Username)
 	}
-	user.CreatedAt = time.Now().Unix()
-	user.LastLoginAt = time.Now().Unix()
-	if err := h.repo.CreateUser(user); err != nil {
+	newUser := ToUserData(user)
+	newUser.CreatedAt = time.Now().Unix()
+	newUser.LastLoginAt = time.Now().Unix()
+	if err := h.repo.CreateUser(newUser); err != nil {
 		return err
 	}
 	return nil
@@ -30,9 +31,8 @@ func (h *ApiHandlerImpl) GetSettingOfUser(userName string) (*Settings, error) {
 	if err != nil {
 		return nil, err
 	}
-	res := Settings{}
-	res.FromSettingData(setting)
-	return &res, nil
+	res := FromSettingData(setting)
+	return res, nil
 }
 
 func (h *ApiHandlerImpl) RegisterUserDomainSetting(userName string, domain string) error {
@@ -68,18 +68,25 @@ func (h *ApiHandlerImpl) RegisterUserSSHKeySetting(userName string, publicKey st
 	return nil
 }
 
-func (h *ApiHandlerImpl) GetUsers() ([]data.User, error) {
-	users, err := h.repo.GetUsers()
+func (h *ApiHandlerImpl) GetUsers() ([]User, error) {
+	usrs, err := h.repo.GetUsers()
 	if err != nil {
 		return nil, err
+	}
+
+	users := []User{}
+	for _, usr := range usrs {
+		user := FromUserData(&usr)
+		users = append(users, *user)
 	}
 	return users, nil
 }
 
-func (h *ApiHandlerImpl) GetUserByUserName(userName string) (*data.User, error) {
-	user, err := h.repo.GetUserByUserName(userName)
+func (h *ApiHandlerImpl) GetUserByUserName(userName string) (*User, error) {
+	usr, err := h.repo.GetUserByUserName(userName)
 	if err != nil {
 		return nil, err
 	}
+	user := FromUserData(usr)
 	return user, nil
 }

@@ -21,13 +21,13 @@ type SSHSession struct {
 	Context context.Context
 	Session ssh.Session
 	Link    string
-	User    *data.User
+	User    *User
 	Opt     *UserOptions
 	Tunnel  *Tunnel
 	File    *data.File
 }
 
-func NewSSHSession(s ssh.Session, user *data.User, opt *UserOptions) (*SSHSession, error) {
+func NewSSHSession(s ssh.Session, user *User, opt *UserOptions) (*SSHSession, error) {
 	session := &SSHSession{
 		Session: s,
 		Opt:     opt,

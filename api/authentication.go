@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/hnimtadd/senditsh/data"
+	"github.com/gofiber/fiber/v2"
 )
 
 func fetchKeys(ctx context.Context, username string) ([]ssh.PublicKey, error) {
@@ -34,11 +34,12 @@ func fetchKeys(ctx context.Context, username string) ([]ssh.PublicKey, error) {
 	return keys, nil
 }
 
-func (api *ApiHandlerImpl) GetUserWithPubKey(pub string) (*data.User, error) {
-	user, err := api.repo.GetUserByPublicKey(pub)
+func (api *ApiHandlerImpl) GetUserWithPubKey(pub string) (*User, error) {
+	usr, err := api.repo.GetUserByPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}
+	user := FromUserData(usr)
 	return user, nil
 }
 
@@ -60,5 +61,23 @@ func (api *ApiHandlerImpl) AuthenticationPublicKeyFromClient() ssh.PublicKeyHand
 
 		logger.Info("msg", "anonymous session open")
 		return true
+	}
+}
+func (api *ApiHandlerImpl) MustAuthMiddleware() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		logger.Info("MustAuth")
+		claims, ok := GetClaimsFromContext(ctx)
+		if !ok {
+			logger.Info("not middlewares")
+			ctx.ClearCookie(TokenCookieKey)
+			return ctx.Redirect("/")
+		}
+		user, err := api.GetUserByUserName(claims.UserName)
+		if err != nil {
+			ctx.ClearCookie(TokenCookieKey)
+			return ctx.Redirect("/")
+		}
+		ctx.Locals("user", user)
+		return ctx.Next()
 	}
 }

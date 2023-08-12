@@ -11,30 +11,28 @@ func (handler *ApiHandlerImpl) CreateTransfer(transfer *data.Transfer) error {
 	return nil
 }
 
-func (handler *ApiHandlerImpl) GetTransfers() ([]Transfer, error) {
+func (handler *ApiHandlerImpl) GetTransfers() ([]*Transfer, error) {
 	transfers, err := handler.repo.GetTransfers()
 	if err != nil {
 		return nil, err
 	}
-	res := []Transfer{}
+	res := []*Transfer{}
 	for _, transfer := range transfers {
-		t := Transfer{}
-		t.FromTransferData(&transfer)
+		t := FromTransferData(&transfer)
 		res = append(res, t)
 	}
 	return res, nil
 
 }
 
-func (handler *ApiHandlerImpl) GetTransfersOfUser(userId string) ([]Transfer, error) {
+func (handler *ApiHandlerImpl) GetTransfersOfUser(userId string) ([]*Transfer, error) {
 	transfers, err := handler.repo.GetTransfersOfUser(userId)
 	if err != nil {
 		return nil, err
 	}
-	res := []Transfer{}
+	res := []*Transfer{}
 	for _, transfer := range transfers {
-		t := Transfer{}
-		t.FromTransferData(&transfer)
+		t := FromTransferData(&transfer)
 		res = append(res, t)
 	}
 	return res, nil

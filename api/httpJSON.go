@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/hnimtadd/senditsh/data"
 	"github.com/hnimtadd/senditsh/utils"
 )
 
@@ -39,7 +38,7 @@ func (api *ApiHandlerImpl) SignUpUserHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var (
 			req     signUpUserReq
-			user    data.User
+			user    User
 			sshHash string
 			sshKey  string
 			err     error
@@ -57,12 +56,12 @@ func (api *ApiHandlerImpl) SignUpUserHandler() fiber.Handler {
 			}
 		}
 
-		user = data.User{
+		user = User{
 			FullName: req.FullName,
 			Username: req.Username,
 			Location: req.Location,
 			Email:    req.Email,
-			Settings: data.Settings{
+			Settings: Settings{
 				SSHKey:  sshKey,
 				SSHHash: sshHash,
 			}}
