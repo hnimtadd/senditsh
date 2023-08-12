@@ -1,0 +1,23 @@
+version: "3"
+services:
+  mongodb:
+    image: mongo:4.2
+    container_name: mongodb
+    hostname: monogdb
+    ports:
+      - 27017:27017
+    networks:
+      - sendit-net
+    volumes:
+      - $PWD/_container/mongodb:/data/db
+      - $PWD/_container/mongoinit/:/docker-entrypoint-initdb.d/
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+networks:
+  sendit-net:
+    driver: bridge

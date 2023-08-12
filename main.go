@@ -2,22 +2,43 @@ package main
 
 import (
 	"log"
+	// "time"
 
 	"github.com/hnimtadd/senditsh/api"
 	"github.com/hnimtadd/senditsh/config"
+	"github.com/hnimtadd/senditsh/repository"
 	server "github.com/hnimtadd/senditsh/server"
+	// "github.com/sujit-baniya/flash"
 )
 
 func main() {
-	sshConfig, err := config.GetSSHConfig(".")
+	// flash.Default(flash.Config{
+	// 	Name:     "defaultFlash",
+	// 	Domain:   "localhost",
+	// 	Expires:  time.Now().Add(15 * time.Minute),
+	// 	Secure:   false,
+	// 	HTTPOnly: true,
+	// 	SameSite: "Lax",
+	// })
+	repoConfig, err := config.GetMongoConfig(".")
 	if err != nil {
 		log.Fatal(err)
 	}
-	api, err := api.NewAPIHandlerImpl()
+	repo, err := repository.NewRepositoryImpl(repoConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	api, err := api.NewAPIHandlerImpl(repo)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	go func() {
+		sshConfig, err := config.GetSSHConfig(".")
+		if err != nil {
+			log.Fatal(err)
+		}
 		sshServer, err := server.NewSSHServerImpl(api, sshConfig)
 		if err != nil {
 			log.Fatal(err)
