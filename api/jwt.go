@@ -11,7 +11,7 @@ import (
 
 const (
 	TokenCookieKey  = "session_token"
-	expiresDuration = 15 * time.Minute
+	expiresDuration = 15 * time.Hour
 )
 
 type Claims struct {
@@ -144,7 +144,6 @@ func (s *JWTService) AuthMiddleware() fiber.Handler {
 		}
 		ctx.Locals("claims", claims)
 
-		// log.Println("flashData at middleware: ", flashData)
 		usr, err := s.Api.GetUserByUserName(claims.UserName)
 		if err != nil {
 			return ctx.Next()

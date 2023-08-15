@@ -20,18 +20,18 @@ type AuthenticationService struct {
 	ClientID         string
 	ClientSecret     string
 	RedirectURI      string
+	Api *ApiHandlerImpl
 }
 
 func (s *AuthenticationService) LoginHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		// token := utils.Must[string](csrf.CsrfFromCookie("csrf_token")(ctx))
-
 		//Check if user already login
-		_, ok := GetClaimsFromContext(ctx)
-
-		if ok {
-			return ctx.Redirect("/", fiber.StatusFound)
-		}
+		// _, ok := GetClaimsFromContext(ctx)
+		//
+		// if ok {
+		// 	return ctx.Redirect("/", fiber.StatusFound)
+		// }
 
 		token := "sampleToken"
 		params := url.Values{
@@ -40,6 +40,7 @@ func (s *AuthenticationService) LoginHandler() fiber.Handler {
 			"scope":        []string{"read:user,user:email"},
 			"state":        []string{token},
 		}
+		logger.Info("param", params)
 		u := utils.Must[*url.URL](url.ParseRequestURI(s.AuthorizationURL))
 
 		u.RawQuery = params.Encode()
@@ -66,6 +67,7 @@ func (s *AuthenticationService) LogoutHandler() fiber.Handler {
 	}
 }
 
+// Should verify user success and then insert user to database if needed
 func (s *AuthenticationService) CallBackHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		logger.Info("Callback from github")
@@ -79,9 +81,9 @@ func (s *AuthenticationService) CallBackHandler() fiber.Handler {
 		if !ok {
 			return nil
 		}
-		logger.Info("state", state)
 		expectedState := ctx.Cookies("csrf_token")
 		if expectedState == "" {
+			logger.Error("msg", fmt.Sprintf("Expected state is empty: %v", expectedState))
 			return ctx.SendStatus(fiber.StatusUnauthorized)
 		}
 
@@ -92,11 +94,12 @@ func (s *AuthenticationService) CallBackHandler() fiber.Handler {
 				logger.Info("user:email granted")
 			}
 		}
+
 		if state != expectedState {
+			logger.Error("msg", fmt.Sprintf("wanted: %v, got: %v", expectedState, state))
 			return ctx.SendStatus(fiber.StatusUnauthorized)
 		}
 
-		logger.Info("expectedState", expectedState)
 		accessToken, err := s.getAccessToken(s.ClientID, s.ClientSecret, code)
 		if err != nil {
 			return ctx.SendStatus(fiber.StatusUnauthorized)
@@ -107,6 +110,14 @@ func (s *AuthenticationService) CallBackHandler() fiber.Handler {
 			return ctx.SendStatus(fiber.StatusUnauthorized)
 		}
 		logger.Info("user", usr)
+		user := &User{
+			Username: usr.Login,
+		}
+		if err := s.Api.CreateUser(user); err != nil{
+			logger.Error("err", err.Error())
+		}
+		
+
 
 		if err := s.JWT.GenerateTokenAndStore(ctx, fmt.Sprintf("github:%d", usr.ID), usr.Login); err != nil {
 			logger.Error("err while generate token", err)

@@ -70,6 +70,13 @@ func (uOpt UserOptions) String() string {
 	return str.String()
 }
 
+func (s *SSHSession) GetUserDomain() string {
+	if s.User != nil {
+		return fmt.Sprintf("http://%v.mysendit.sh", s.User.Domain)
+	}
+	return ""
+}
+
 func ParseUserOptions(commands []string) (*UserOptions, error) {
 	var usrOpts = &UserOptions{}
 	for _, command := range commands {

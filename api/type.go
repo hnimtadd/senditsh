@@ -19,6 +19,7 @@ type User struct {
 	LastLoginAt          string   `json:"lastLoginAt,omiempty" bson:"lastLoginAt,omiempty"`
 	SubscriptionDuration string   `json:"duration,omiempty" bson:"duration,omiempty"`
 	SubscriptionLevel    string   `json:"level,omiempty" bson:"level,omiempty"`
+	PublicKey            string   `json:"publicKey,omiempty"`
 	Settings             Settings `json:"settings,omiempty" bson:"settings,omiempty"`
 	Domain               string   `json:"domain,omiempty"`
 	Fingerprint          string   `json:"fingerprint,omiempty"`
@@ -28,24 +29,31 @@ type Settings struct {
 	Subdomain  string `json:"subdomain,omiempty" bson:"subdomain,omiempty"`
 	SSHKey     string `json:"sshKey,omiempty" bson:"sshKey,omiempty"`
 	SSHHash    string `json:"sshHash,omiempty" bson:"sshHash,omiempty"`
+	FullKey    string `json:"fullKey,omiempty" bson:"fullKey,omiempty"`
 	ModifiedAt string `json:"modifiedAt,omiempty" bson:"modifiedAt,omiempty"`
 }
 
 type Transfer struct {
+	Id         string `json:"transferId,omiemtpy" bson:"_id,omiempty"`
 	Filename   string `json:"fileName,omiempty" bson:"fileName,omiempty"`
 	From       string `json:"from,omiempty" bson:"from,omiempty"`
+	Link       string `json:"link,omiempty"`
 	ToEmail    string `json:"toEmail,omiempty" bson:"toEmail,omiempty"`
 	Message    string `json:"message,omiempty" bson:"message,omiempty"`
+	Status     string `json:"status,omiempty"`
 	IsVerified bool   `json:"isVerified,omiempty" bson:"isVerified,omiempty"`
 	CreatedAt  string `json:"createdAt,omiempty" bson:"createdAt,omiempty"`
 }
 
 func FromTransferData(td *data.Transfer) *Transfer {
 	t := &Transfer{
+		Id:         td.Id.Hex(),
 		Filename:   td.Filename,
 		From:       td.UserName,
+		Link:       td.Link,
 		ToEmail:    td.ToEmail,
 		Message:    td.Message,
+		Status:     td.Status,
 		IsVerified: td.IsVerified,
 		CreatedAt:  time.Unix(td.CreatedAt, 0).Format("15:04:05 01-02-2006"),
 	}
@@ -53,11 +61,13 @@ func FromTransferData(td *data.Transfer) *Transfer {
 }
 
 func FromSettingData(sd *data.Settings) *Settings {
-	s := &Settings{}
-	s.SSHHash = sd.SSHHash
-	s.SSHKey = sd.SSHKey
-	s.Subdomain = sd.Subdomain
-	s.ModifiedAt = time.Unix(sd.ModifiedAt, 0).Format("15:04:05 01-02-2006")
+	s := &Settings{
+		SSHHash:    sd.SSHHash,
+		SSHKey:     sd.SSHKey,
+		FullKey:    sd.FullKey,
+		Subdomain:  sd.Subdomain,
+		ModifiedAt: time.Unix(sd.ModifiedAt, 0).Format("15:04:05 01-02-2006"),
+	}
 	return s
 }
 
@@ -66,15 +76,20 @@ func ToSettingData(s *Settings) *data.Settings {
 		SSHKey:     s.SSHKey,
 		SSHHash:    s.SSHHash,
 		Subdomain:  s.Subdomain,
+		FullKey:    s.FullKey,
 		ModifiedAt: time.Now().Unix(),
 	}
 	return sd
 }
 
 func FromUserData(ud *data.User) *User {
-	fingerprint, err := utils.GetFingerprint(ud.Settings.SSHKey)
-	if err != nil {
-		panic(err)
+	fingerprint := ""
+	if ud.Settings.FullKey != "" {
+		var err error
+		fingerprint, err = utils.GetFingerprint(ud.Settings.SSHKey)
+		if err != nil {
+			panic(err)
+		}
 	}
 	u := &User{
 		Id:                ud.Id.String(),
@@ -86,11 +101,13 @@ func FromUserData(ud *data.User) *User {
 		CreateAt:          time.Unix(ud.CreatedAt, 0).Format("15:04:05 01-02-2006"),
 		Settings:          *FromSettingData(&ud.Settings),
 		Domain:            ud.Settings.Subdomain,
+		PublicKey:         ud.Settings.FullKey,
 		Fingerprint:       fingerprint,
 		SubscriptionLevel: ud.Subscription.Level.String(),
 	}
 	return u
 }
+
 func ToSubscriptionData(SubscriptionLevel, SubscriptionDuration string) *data.Subscription {
 	sd := &data.Subscription{}
 	return sd

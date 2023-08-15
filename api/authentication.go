@@ -35,7 +35,7 @@ func fetchKeys(ctx context.Context, username string) ([]ssh.PublicKey, error) {
 }
 
 func (api *ApiHandlerImpl) GetUserWithPubKey(pub string) (*User, error) {
-	usr, err := api.repo.GetUserByPublicKey(pub)
+	usr, err := api.repo.GetUserBySSHKey(pub)
 	if err != nil {
 		return nil, err
 	}

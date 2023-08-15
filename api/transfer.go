@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/hnimtadd/senditsh/data"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func (handler *ApiHandlerImpl) CreateTransfer(transfer *data.Transfer) error {
@@ -36,4 +37,8 @@ func (handler *ApiHandlerImpl) GetTransfersOfUser(userId string) ([]*Transfer, e
 		res = append(res, t)
 	}
 	return res, nil
+}
+
+func (handler *ApiHandlerImpl) UpdateTransferStatus(transferId primitive.ObjectID , status string) error {
+		return handler.repo.UpdateTransferStatus(transferId, status) 
 }

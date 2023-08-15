@@ -4,27 +4,32 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/hnimtadd/senditsh/data"
+	"github.com/hnimtadd/senditsh/settings"
 )
 
 func (handler *ApiHandlerImpl) GetFileInfo(session SSHSession, ctx context.Context, r io.Reader) (*data.File, error) {
 	// ReadFile info from reader, compress to gzip
+
 	buf := &bytes.Buffer{}
 	rd := io.TeeReader(r, buf)
 	mType, err := mimetype.DetectReader(rd)
+	if buf.Len() < 10{
+		return nil, fmt.Errorf("file size must larger than 10 bytes\n")
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	fileName := "default" + mType.Extension()
+	fileName := settings.FileNameDefault + mType.Extension()
 
 	if session.Opt.FileName != "" {
 		fileName = session.Opt.FileName
-
 	}
 
 	file := &data.File{

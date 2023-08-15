@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/hnimtadd/senditsh/utils"
 	"github.com/sujit-baniya/flash"
@@ -86,7 +88,15 @@ func (api *ApiHandlerImpl) UserPageHandler() fiber.Handler {
 
 func (api *ApiHandlerImpl) GetUserInformationPageHandler() fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		return nil
+		context := fiber.Map{}
+		user := utils.GetLocalWithType[User](ctx, "user")
+		if user == nil {
+			context["informationError"] = "Can't get user"
+			return ctx.Render("user/information", context)
+		}
+		logger.Info("user", &user)
+		context["user"] = *user
+		return ctx.Render("user/information", context)
 	}
 }
 
@@ -107,5 +117,108 @@ func (api *ApiHandlerImpl) GetUserDomainTrackingPageHandler() fiber.Handler {
 		logger.Info("user", &user)
 		context["user"] = *user
 		return ctx.Render("user/domain", context)
+	}
+}
+
+func (api *ApiHandlerImpl) GetSettingsEditPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		context := fiber.Map{}
+		user := utils.GetLocalWithType[User](ctx, "user")
+		if user == nil {
+			context["settingError"] = "Cann't get user"
+			return ctx.Render("user/settingsEdit", context)
+		}
+		logger.Info("user", &user)
+		context["user"] = *user
+		return ctx.Render("user/settingsEdit", context)
+	}
+}
+
+func (api *ApiHandlerImpl) PostSettingsEditPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		errContext := fiber.Map{}
+
+		user := utils.GetLocalWithType[User](ctx, "user")
+		if user == nil {
+			errContext["settingError"] = "Cann't get user information"
+			logger.Error("err", "Cann't get user information")
+			return ctx.Render("user/settingsEdit", errContext)
+		}
+
+		domain := ctx.FormValue("domain")
+		if domain != "" {
+			if err := api.RegisterUserDomainSetting(user.Username, domain); err != nil {
+				errContext["settingError"] = err.Error()
+				logger.Error("err", err.Error())
+				return ctx.Render("user/settingsEdit", errContext)
+			}
+		}
+
+		publickey := ctx.FormValue("publicKey")
+		if publickey != "" {
+			if err := api.RegisterUserSSHKeySetting(user.Username, publickey); err != nil {
+				errContext["settingError"] = err.Error()
+				logger.Error("err", err.Error())
+				return ctx.Render("user/settingsEdit", errContext)
+			}
+		}
+
+		return ctx.Redirect("/user/settings")
+	}
+}
+func (api *ApiHandlerImpl) LoginPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.Render("login/index", fiber.Map{})
+	}
+}
+func (api *ApiHandlerImpl) GetUserInformationEditPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		return ctx.Render("user/informationEdit", fiber.Map{})
+	}
+}
+
+func (api *ApiHandlerImpl) PostUserInformationEditPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		errContext := fiber.Map{}
+		user := utils.GetLocalWithType[User](ctx, "user")
+		if user == nil {
+			errContext["informationError"] = "Can't get user"
+			return flash.WithData(ctx, errContext).Redirect("/user/information-edit")
+		}
+		fullName := ctx.FormValue("fullName")
+		email := ctx.FormValue("email")
+		location := ctx.FormValue("location")
+		logger.Info("msg", fmt.Sprintf("Update user with information: Username: %v, email: %v, location: %v", fullName, email, location))
+		if err := api.UpdateUserInformation(user.Username, fullName, email, location); err != nil {
+			errContext["informationError"] = err.Error()
+			return flash.WithData(ctx, errContext).Redirect("/user/information-edit")
+		}
+		return ctx.Redirect("/user/information")
+	}
+}
+
+func (api *ApiHandlerImpl) GetUserDomainPageHandler() fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		errContext := fiber.Map{}
+		userName := ctx.Params("u")
+		if userName == "" {
+			errContext["userDomainError"] = "UserName must valid"
+			return ctx.Render("domain/notfound", errContext)
+		}
+
+		user, err := api.GetUserByDomain(userName)
+		if err != nil {
+			errContext["userDomainError"] = "User not exits"
+			return ctx.Render("domain/notfound", errContext)
+		}
+
+		sharing, err := api.GetUserSharingLink(user.Username)
+		if err != nil {
+			errContext["userDomainError"] = err.Error()
+		}
+		return ctx.Render("domain/domain", fiber.Map{
+			"domainUser":    user,
+			"domainSharing": sharing,
+		})
 	}
 }
