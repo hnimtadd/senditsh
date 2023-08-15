@@ -14,7 +14,6 @@ import (
 func main() {
 	// flash.Default(flash.Config{
 	// 	Name:     "defaultFlash",
-	// 	Domain:   "localhost",
 	// 	Expires:  time.Now().Add(15 * time.Minute),
 	// 	Secure:   false,
 	// 	HTTPOnly: true,
@@ -52,7 +51,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	httpServer, err := server.NewHTTPServerImpl(api, httpConfig)
+
+	oauthConfig, err := config.GetGithubConfig(".")
+	if err != nil{
+		log.Fatal(err)
+	}
+	httpServer, err := server.NewHTTPServerImpl(api, httpConfig, oauthConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

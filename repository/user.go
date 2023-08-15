@@ -62,7 +62,7 @@ func (repo *repositoryImpl) GetUserByUserName(userName string) (*data.User, erro
 
 }
 
-func (repo *repositoryImpl) GetUserByPublicKey(publicKey string) (*data.User, error) {
+func (repo *repositoryImpl) GetUserBySSHKey(publicKey string) (*data.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	filter := bson.M{"settings.sshKey": publicKey}
@@ -128,7 +128,7 @@ func (repo *repositoryImpl) UpdateUserSetting(userName string, setting *data.Set
 	return nil
 }
 
-func (repo *repositoryImpl) InsertUserSSHKey(userName string, sshKey string, sshHash string) error {
+func (repo *repositoryImpl) InsertUserSSHKey(userName string, fullKey string, sshKey string, sshHash string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	filter := bson.M{
@@ -136,6 +136,7 @@ func (repo *repositoryImpl) InsertUserSSHKey(userName string, sshKey string, ssh
 	}
 	update := bson.M{
 		"$set": bson.M{
+			"settings.fullKey" : fullKey,
 			"settings.sshKey":     sshKey,
 			"settings.sshHash":    sshHash,
 			"settings.modifiedAt": time.Now().Unix(),
@@ -162,6 +163,45 @@ func (repo *repositoryImpl) InsertUserDomain(userName string, domain string) err
 	}
 	res := repo.db.Collection("users").FindOneAndUpdate(ctx, filter, update)
 	if err := res.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func(repo *repositoryImpl) GetUserByDomain(domain string) (*data.User, error ) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second *5)
+	defer cancel()
+	filter := bson.M{
+		"settings.subdomain":  domain,
+	}
+	res := repo.db.Collection("users").FindOne(ctx, filter)
+	if err :=res.Err(); err != nil{
+		return nil, err
+	}
+	user := &data.User{}
+	if err := res.Decode(user); err != nil{
+		return nil, err
+	}
+	return user, nil
+}
+func (repo *repositoryImpl) UpdateUserInformation(userName, fullName, email, location string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	filter := bson.M{
+		"userName" : userName,
+	}
+
+	update := bson.M{
+		"$set"  :bson.M{
+			"fullName" : fullName,
+			"email": email,
+			"location": location,
+		},
+	}
+
+	res := repo.db.Collection("users").FindOneAndUpdate(ctx, filter, update)
+	if err :=res.Err(); err != nil{
 		return err
 	}
 	return nil

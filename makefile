@@ -3,7 +3,7 @@ test:
 test_verbose:
 	go test  -v -coverprofile cover.out ./...
 test_send:
-	cat cover.out | ssh localhost -p 2222 msg="hello" expired="10s"
+	cat cover.out | ssh mysendit.sh -p 2222 msg="hello" expired="10s"
 test_download:
 	sleep 1
 	wget --delete-after --timeout 1 --tries 1 --no-verbose http://localhost:3000/api/v1/transfer/sample

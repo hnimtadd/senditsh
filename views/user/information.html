@@ -1,0 +1,73 @@
+{% extends "layouts/user.html" %} {% block headContent %}
+<title>Information - Sendit</title>
+{% endblock %} {% block myScript %} {% endblock %} {% block pageContent %} 
+{% if user %}
+<section class="dark:bg-gray-900">
+  <div class="max-w-2xl px-4 py-8 mx-auto lg:py-16">
+    <h2 class="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+        User information
+    </h2>
+      <div class="grid gap-4 mb-4 sm:grid-cols-2 sm:gap-6 sm:mb-5">
+        <div class="sm:col-span-2">
+          <label
+            for="fullName"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Full name</label
+          >
+          <input
+            type="text"
+            name="fullName"
+            id="fullName"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            value="{{user.FullName}}"
+            placeholder="Type your full name"
+            disabled
+          />
+        </div>
+        <div class="sm:col-span-2">
+          <label
+            for="brand"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Email</label
+          >
+          <input
+            type="text"
+            name="brand"
+            id="brand"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            value="{{user.Email}}"
+            placeholder="Your email"
+            disabled
+          />
+        </div>
+        <div class="w-full">
+          <label
+            for="price"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Location</label
+          >
+          <input
+            type="text"
+            name="price"
+            id="price"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            value="{{user.Location}}"
+            placeholder="Your location"
+            disabled
+          />
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+          <a href="/user/information-edit" >
+              <button
+                     class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                     >
+                     Edit
+              </button>
+          </a>
+      </div>
+  </div>
+</section>
+ {% endif %} {% if flash.domainError %}
+<div>Error</div>
+{{ domainError }} {% endif %} {% endblock %}

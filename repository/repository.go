@@ -8,6 +8,7 @@ import (
 	"github.com/hnimtadd/senditsh/config"
 	"github.com/hnimtadd/senditsh/data"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -17,15 +18,19 @@ type Repository interface {
 	InsertTransfer(transfer *data.Transfer) error
 	GetTransfersOfUser(id string) ([]data.Transfer, error)
 	GetTransfers() ([]data.Transfer, error)
+	UpdateTransferStatus(transferId primitive.ObjectID, status string) error
+	GetLastTransfer(userName string) (*data.Transfer, error)
 
 	CreateUser(user *data.User) error
 	GetUsers() ([]data.User, error)
 	GetUserByUserName(userName string) (*data.User, error)
-	GetUserByPublicKey(publicKey string) (*data.User, error)
+	GetUserBySSHKey(publicKey string) (*data.User, error)
 	GetSettingOfUser(userName string) (*data.Settings, error)
 	UpdateUserSetting(userName string, setting *data.Settings) error
-	InsertUserSSHKey(userName string, sshKey string, sshHash string) error
+	InsertUserSSHKey(userName string, fullKey string, sshKey string, sshHash string) error
 	InsertUserDomain(userName string, domain string) error
+	GetUserByDomain(domain string) (*data.User, error)
+	UpdateUserInformation(userName, fullName, email, location string) error
 }
 
 type repositoryImpl struct {

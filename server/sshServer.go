@@ -14,6 +14,7 @@ import (
 	"github.com/hnimtadd/senditsh/data"
 	"github.com/hnimtadd/senditsh/settings"
 	"github.com/hnimtadd/senditsh/utils"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type SSHServer interface {
@@ -75,12 +76,12 @@ func (server *SSHServerImpl) TransferFileSessionHandler() ssh.Handler {
 
 		var (
 			ctx, cancel = context.WithTimeout(context.Background(), timeout)
-			id          = "sample"
+			id          = s.Context().SessionID()
 		)
 		defer cancel()
 
 		session.SetContext(ctx)
-		session.Link = id
+		session.Link = fmt.Sprintf("http://mysendit.sh/api/v1/transfer/%v", id)
 
 		tunnel, err := server.api.InitTunnelWithID(ctx, id)
 		if err != nil {
@@ -96,24 +97,41 @@ func (server *SSHServerImpl) TransferFileSessionHandler() ssh.Handler {
 			s.Exit(1)
 			return
 		}
+		transfer, err := server.createTransfer(*session)
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		logger.Info("created Transfer ", transfer)
+		if err := server.api.CreateTransfer(transfer); err != nil {
+			logger.Error("msg", err)
+			s.Exit(1)
+			return
+		}
+
+		logger.Info("inited tunnel")
+
+		file, err := server.api.GetFileInfo(*session, ctx, s)
+		if err != nil {
+			generateCustomMessage(session, s, err.Error())
+			logger.Error("msg", err)
+			s.Exit(1)
+			return
+		}
+
+		session.File = file
 		if err := server.api.WaitForWriterPipeShake(ctx, id); err != nil {
 			if err := generateExpiredTransferMessage(session, s); err != nil {
+				logger.Error("error", err)
+			}
+
+			if err := server.api.UpdateTransferStatus(transfer.Id, "expired"); err != nil {
 				logger.Error("error", err)
 			}
 			s.Exit(1)
 			return
 		}
 
-		// Get file from ssh connection
-
-		file, err := server.api.GetFileInfo(*session, ctx, s)
-		if err != nil {
-			logger.Error("msg", err)
-			s.Exit(1)
-			return
-		}
-		session.File = file
 
 		ctx = context.WithValue(ctx, "file", file)
 
@@ -127,11 +145,8 @@ func (server *SSHServerImpl) TransferFileSessionHandler() ssh.Handler {
 			s.Exit(1)
 			return
 		}
+		logger.Info("msg", "copied")
 
-		transfer, err := server.createTransfer(*session)
-		if err != nil {
-			log.Fatal(err)
-		}
 
 		defer func() {
 			if err := generateTransferDoneMessage(session, s); err != nil {
@@ -140,10 +155,9 @@ func (server *SSHServerImpl) TransferFileSessionHandler() ssh.Handler {
 			server.api.FinalizeAndCleanUpAfterTransfer(transfer)
 		}()
 
-		if err := server.api.CreateTransfer(transfer); err != nil {
-			logger.Error("msg", err)
-			s.Exit(1)
-			return
+		logger.Info("Transfer done")
+		if server.api.UpdateTransferStatus(transfer.Id, "done"); err != nil {
+			logger.Error("err", err.Error())
 		}
 		return
 	}
@@ -176,10 +190,16 @@ func (server *SSHServerImpl) createTransfer(s api.SSHSession) (*data.Transfer, e
 		from = s.User.Username
 	}
 
+	fileName := settings.FileNameDefault
+	if s.Opt.FileName != "" {
+		fileName = s.Opt.FileName
+	}
 	transfer := data.Transfer{
-		Filename:    s.File.FileName,
+		Id:          primitive.NewObjectID(),
+		Filename:    fileName,
 		UserName:    from,
 		Link:        s.Link,
+		Status:      "Not done",
 		ToEmail:     s.Opt.ToEmail,
 		Message:     s.Opt.Msg,
 		Initiator:   s.Session.User(),
@@ -191,12 +211,12 @@ func (server *SSHServerImpl) createTransfer(s api.SSHSession) (*data.Transfer, e
 func generateSetupDoneMessage(session *api.SSHSession, w io.Writer) error {
 	str := strings.Builder{}
 	str.WriteString("Direct download link:\n")
-	str.WriteString(fmt.Sprintf("\thttp://localhost:3000/api/v1/transfer/%v\n", session.Link))
+	str.WriteString("\t"+session.Link + "\n")
 
 	user := session.User
 	if user != nil && user.Settings.Subdomain != "" {
 		str.WriteString("Download page:\n")
-		str.WriteString(fmt.Sprintf("\thttp://localhost:3000%v/%v\n", session.User.Settings.Subdomain, session.Link))
+		str.WriteString("\t"+session.GetUserDomain() + "\n")
 	}
 
 	if _, err := io.WriteString(w, str.String()); err != nil {
@@ -235,4 +255,11 @@ func generateVerifiedUserMessage(session *api.SSHSession, w io.Writer) error {
 		return err
 	}
 	return nil
+}
+func generateCustomMessage(session *api.SSHSession, w io.Writer, msg string) error {
+	if _, err := io.WriteString(w, msg) ;err != nil{
+		return err
+	}
+	return nil
+
 }

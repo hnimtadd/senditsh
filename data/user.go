@@ -56,8 +56,10 @@ type Subscription struct {
 	CreatedAt int64 `json:"createdAt,omiempty" bson:"createdAt,omiempty"`
 	ExpiredAt int64 `json:"expired,omiempty" bson:"expired,omiempty"`
 }
+
 type Settings struct {
 	Subdomain  string `json:"subdomain,omiempty" bson:"subdomain,omiempty"`
+	FullKey    string `json:"fullKey,omiempty" bson:"fullKey,omiempty"`
 	SSHKey     string `json:"sshKey,omiempty" bson:"sshKey,omiempty"`
 	SSHHash    string `json:"sshHash,omiempty" bson:"sshHash,omiempty"`
 	ModifiedAt int64  `json:"modifiedAt,omiempty" bson:"modifiedAt,omiempty"`

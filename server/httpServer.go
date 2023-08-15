@@ -25,13 +25,15 @@ type HTTPServerImpl struct {
 	app    *fiber.App
 	api    *api.ApiHandlerImpl
 	config *config.HTTPConfig
+	oauthCofig *config.GithubConfig
 	auth   *api.AuthenticationService
 }
 
-func NewHTTPServerImpl(api *api.ApiHandlerImpl, config *config.HTTPConfig) (HTTPServer, error) {
+func NewHTTPServerImpl(api *api.ApiHandlerImpl, config *config.HTTPConfig, oauthConfig *config.GithubConfig) (HTTPServer, error) {
 	server := &HTTPServerImpl{
 		api:    api,
 		config: config,
+		oauthCofig: oauthConfig,
 	}
 	if err := server.initConnection(); err != nil {
 		return nil, err
@@ -92,9 +94,10 @@ func (server *HTTPServerImpl) initConnection() error {
 		JWT:              j,
 		AuthorizationURL: "https://github.com/login/oauth/authorize",
 		AccessTokenURL:   "https://github.com/login/oauth/access_token",
-		ClientID:         "df19ba1381176b205f06",
-		ClientSecret:     "8ba58ed2caaea3c29a1f02c46431a98fe11120fd",
-		RedirectURI:      "http://localhost:3000/callback",
+		ClientID: server.oauthCofig.ClientId,
+		ClientSecret:server.oauthCofig.ClientSecret,
+		RedirectURI:      "http://mysendit.sh/callback",
+		Api:              server.api,
 	}
 	server.auth = auth
 	server.initRoute()
@@ -108,6 +111,7 @@ func (server *HTTPServerImpl) initRoute() {
 	server.app.Use(server.auth.JWT.AuthMiddleware())
 	server.app.Use(loggmidleware.New())
 
+	server.app.Use("/usersubdomain/:u", server.api.GetUserDomainPageHandler())
 	server.app.Get("/callback", server.auth.CallBackHandler())
 	server.app.Get("/api/v1/transfer/:id", server.api.FileTransferHandler())
 	server.app.Get("/api/v1/users", server.api.GetUsersHandler())
@@ -117,18 +121,27 @@ func (server *HTTPServerImpl) initRoute() {
 	server.app.Get("/", server.api.IndexPageHandler())
 	server.app.Get("/signin", server.auth.LoginHandler())
 	server.app.Get("/signout", server.auth.LogoutHandler())
+	server.app.Get("/login", server.api.LoginPageHandler())
 	// server.app.Get("/download/:userName", server.api.DownloadPageHandler())
 
 	server.app.Get("/:u/download", server.api.DownloadPageHandler())
 	server.app.Get("/user", server.api.MustAuthMiddleware(), server.api.UserPageHandler())
 	server.app.Get("/user/transfers", server.api.MustAuthMiddleware(), server.api.GetUserTransferPagehandler())
+
+	server.app.Post("/user/settings-edit", server.api.MustAuthMiddleware(), server.api.PostSettingsEditPageHandler())
+	server.app.Get("/user/settings-edit", server.api.MustAuthMiddleware(), server.api.GetSettingsEditPageHandler())
 	server.app.Get("/user/settings", server.api.MustAuthMiddleware(), server.api.GetSettingsPageHandler())
+
 	server.app.Get("/user/information", server.api.MustAuthMiddleware(), server.api.GetUserInformationPageHandler())
+
+	server.app.Get("/user/information-edit", server.api.MustAuthMiddleware(), server.api.GetUserInformationEditPageHandler())
+	server.app.Post("/user/information-edit", server.api.MustAuthMiddleware(), server.api.PostUserInformationEditPageHandler())
+
 	server.app.Get("/user/domain", server.api.MustAuthMiddleware(), server.api.GetUserDomainTrackingPageHandler())
 
 	server.app.Put("/api/v1/register-domain", server.api.MustAuthMiddleware(), server.api.RegisterUserSubDomainSettingHandler())
 	server.app.Put("/api/v1/register-sshKey", server.api.MustAuthMiddleware(), server.api.RegisterUserSSHSettingHandler())
-	server.app.Get("/api/v1/get-transfer/", server.api.MustAuthMiddleware(), server.api.GetTransfersOfUserHandler())
+	server.app.Get("/api/v1/get-transfer/", server.api.GetTransfersOfUserHandler())
 	server.app.Get("/api/v1/get-setting/", server.api.MustAuthMiddleware(), server.api.GetUserSettingHandler())
 
 	server.app.Use(server.api.NotFoundPageHandler())

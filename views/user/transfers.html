@@ -4,14 +4,16 @@
 {% endblock %}
 {% block pageContent %}
 {% if transfers %}
-<div class="w-full flex flex-col justify-start items-center pt-[100px]">
-<div class="w-[70%] overflow-x-scroll shadow-md sm:rounded-lg">
-  <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+<div class="w-full h-full flex flex-col justify-start items-center ">
+<h2 class="text-4xl font-extrabold dark:text-white">Transfer history</h2>
+<div class="w-[90%] overflow-scroll h-[700px] shadow-md sm:rounded-lg mt-5">
+  <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400  overflow-scroll">
     <thead
       class="text-xs text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
     >
       <tr>
         <th scope="col" class="px-6 py-3">From</th>
+        <th scope="col" class="px-6 py-3">Status</th>
         <th scope="col" class="px-6 py-3">File Name</th>
         <th scope="col" class="px-6 py-3">To User</th>
         <th scope="col" class="px-6 py-3">To Email</th>
@@ -28,6 +30,13 @@
           scope="row"
           class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
           >{{ transfer.From }}</th>
+        <td class="px-6 py-4">
+          {% if transfer.Status and transfer.Status != "" %}
+            {{ transfer.Status }}
+          {% else %}
+            Unknow
+          {% endif %}
+        </td>
         <td class="px-6 py-4">{{ transfer.Filename }}</td>
         <td class="px-6 py-4">{{ transfer.ToEmail }}</td>
         <td class="px-6 py-4">{{ transfer.ToEmail }}</td>

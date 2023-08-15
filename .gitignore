@@ -25,3 +25,4 @@ sendit.pub
 go.work
 _container/*
 keys/*
+authorized_keys
