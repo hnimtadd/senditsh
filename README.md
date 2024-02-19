@@ -12,8 +12,9 @@ Stack:
     - Database: `Mongo`
 
 ## Run locally
+`Linux, Mac OS`
 
-Preparation: Create github oauth app and cliam github client id and github secret then fill in .env file. Example in example.env
+Preparation: Create github oauth app and claim github client id and github secret then fill in .env file. Example in example.env
 
 1. Run mongodb service
 
