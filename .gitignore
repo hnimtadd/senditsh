@@ -27,3 +27,4 @@ _container/*
 keys/*
 authorized_keys
 node_modules
+**/.DS_Store
